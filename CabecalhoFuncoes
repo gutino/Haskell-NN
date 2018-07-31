@@ -1,0 +1,27 @@
+type Network = [[[Float]]]
+
+--Recebe uma lista com o numero de neuronios por layer e devolve uma lista de matrizes
+--com os pesos das ligacoes
+createNetwork :: [Int] -> Network
+
+--Recebe o input da primeira layer [Float] e a rede (os pesos), calcula a soma
+-- i*w e aplica a funcao de ativacao para cada neuronio. Devolve uma lista de listas,
+--onde cada lista eh o output para cada layer
+calcOutput :: [Float] -> Network -> [[Float]]
+
+--Funcao que recebe o output de uma layer e o resultado esperado e devolve
+--o erro para cada neuronio
+calcError :: [Float] -> [Float] -> [Float]
+
+--Recebe a rede e a funcao de erro e realiza o backtracking:
+--Calcula o erro do output
+--Ajusta os pesos
+--Calcula a saida esperada para a proxima layer
+--Repete até chegar na primeira
+backTracking :: Network -> (calcError) -> Network
+
+--Recebe a rede e um conjunto de treinamento de tuplas (input, output)
+--e realiza o backtracking para cada entrada
+--Repete até que o criterio de parada (float) seja atingido
+--Devolve os pesos finais
+training :: Network -> [([Float],[Float])] -> Float -> Network
