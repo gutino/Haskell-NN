@@ -7,7 +7,30 @@ createNetwork :: [Int] -> Network
 --Recebe o input da primeira layer [Float] e a rede (os pesos), calcula a soma
 -- i*w e aplica a funcao de ativacao para cada neuronio. Devolve uma lista de listas,
 --onde cada lista eh o output para cada layer
-calcOutput :: [Float] -> Network -> [[Float]]
+
+--Parte do Thiago
+
+import Data.List
+
+sigmoid :: Float -> Float -> Float
+sigmoid x a = 1/(1 + exp(-a*x))
+
+ativacao :: Float -> Float
+ativacao a | a < 2 = 0
+           | otherwise = 1
+
+calculaAct :: [Float] -> [[Float]] -> (Float->Float) -> [Float]
+calculaAct xs [] f      = []
+calculaAct xs (y:ys) f  = [f $ sum $ zipWith (*) xs y] ++ calculaAct xs ys f
+
+calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
+calcOutput xs [] f     = []
+calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
+    where
+        resultCamada = calculaAct xs r f
+
+
+-Fim da Parte do Thiago
 
 --Funcao que recebe o output de uma layer e o resultado esperado e devolve
 --o erro para cada neuronio
