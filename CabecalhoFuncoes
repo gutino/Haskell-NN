@@ -12,8 +12,6 @@ createNetwork :: [Int] -> Network
 
 import Data.List
 
-type Network = [[[Float]]]
-
 sigmoid :: Float -> Float -> Float
 sigmoid x a = 1/(1 + exp(-a*x))
 
