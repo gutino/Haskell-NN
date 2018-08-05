@@ -25,7 +25,9 @@ calculaAct xs (y:ys) f  = [f $ sum $ zipWith (*) xs y] ++ calculaAct xs ys f
 
 calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
 calcOutput xs [] f     = []
-calcOutput xs (r:rs) f = [calculaAct xs r f] ++ calcOutput xs rs f
+calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
+    where
+        resultCamada = calculaAct xs r f
 
 
 -Fim da Parte do Thiago
