@@ -12,29 +12,17 @@ createNetwork :: [Int] -> Network
 
 type Network = [[[Float]]]
 
-exemplo_entrada = [4,3,1]
-exemplo_saida   = [[[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0]],[[1.0,1.0,1.0]]
-
-rem_nulo :: [[Float]] -> [[Float]]
-rem_nulo []     = []
-rem_nulo (x:xs) | x == []   = rem_nulo xs
-                | otherwise = x : (rem_nulo xs)
-
 makeList :: Int -> [Float]
 makeList 0 = []
 makeList x = 1.0 : (makeList (x-1))
 
 makeMatrix :: Int -> Int -> [[Float]]
-makeMatrix 0 _ = []
-makeMatrix _ 0 = []
-makeMatrix x y = rem_nulo ((makeList y) : (makeMatrix (x-1) y))
+makeMatrix 0 y = []
+makeMatrix x y = ((makeList y) : (makeMatrix (x-1) y))
 
 createNetwork :: [Int] -> Network
-createNetwork []       = [[[]]]
-createNetwork [x]      = [[[]]]
+createNetwork [x]       = []
 createNetwork (x:y:ys) = (makeMatrix y x) : (createNetwork (y:ys))
-
--- AINDA NÃO FUNCIONA DIREITO
 
 --Parte do Thiago
 
@@ -57,6 +45,10 @@ calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
     where
         resultCamada = calculaAct xs r f
 
+-- calcOutput [1] (createNetwork [1,2,3]) (`sigmoid` 3.0)
+-->[[0.95257413,0.95257413],[0.99671614,0.99671614,0.99671614]]
+-- Ele cria uma rede com uma entrada, dois neurônios na parte intermediária e três neurônios na saída. O input é 1.0 e a saída
+de cada camada é retornado pela função acima
 
 -Fim da Parte do Thiago
 
