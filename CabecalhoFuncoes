@@ -13,7 +13,7 @@ createNetwork :: [Int] -> Network
 type Network = [[[Float]]]
 
 exemplo_entrada = [4,3,1]
-exemplo_saida   = [[[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0]],[[1.0],[1.0],[1.0]]]
+exemplo_saida   = [[[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0]],[[1.0,1.0,1.0]]
 
 rem_nulo :: [[Float]] -> [[Float]]
 rem_nulo []     = []
@@ -25,14 +25,14 @@ makeList 0 = []
 makeList x = 1.0 : (makeList (x-1))
 
 makeMatrix :: Int -> Int -> [[Float]]
-makeMatrix 0 _ = [[]]
-makeMatrix _ 0 = [[]]
+makeMatrix 0 _ = []
+makeMatrix _ 0 = []
 makeMatrix x y = rem_nulo ((makeList y) : (makeMatrix (x-1) y))
 
 createNetwork :: [Int] -> Network
 createNetwork []       = [[[]]]
 createNetwork [x]      = [[[]]]
-createNetwork (x:y:ys) = (makeMatrix x y) : (createNetwork (y:ys))
+createNetwork (x:y:ys) = (makeMatrix y x) : (createNetwork (y:ys))
 
 -- AINDA NÃO FUNCIONA DIREITO
 
