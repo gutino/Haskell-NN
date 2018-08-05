@@ -8,6 +8,34 @@ createNetwork :: [Int] -> Network
 -- i*w e aplica a funcao de ativacao para cada neuronio. Devolve uma lista de listas,
 --onde cada lista eh o output para cada layer
 
+--Parte do Gustavo
+
+type Network = [[[Float]]]
+
+exemplo_entrada = [4,3,1]
+exemplo_saida   = [[[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0]],[[1.0],[1.0],[1.0]]]
+
+rem_nulo :: [[Float]] -> [[Float]]
+rem_nulo []     = []
+rem_nulo (x:xs) | x == []   = rem_nulo xs
+                | otherwise = x : (rem_nulo xs)
+
+makeList :: Int -> [Float]
+makeList 0 = []
+makeList x = 1.0 : (makeList (x-1))
+
+makeMatrix :: Int -> Int -> [[Float]]
+makeMatrix 0 _ = [[]]
+makeMatrix _ 0 = [[]]
+makeMatrix x y = rem_nulo ((makeList y) : (makeMatrix (x-1) y))
+
+createNetwork :: [Int] -> Network
+createNetwork []       = [[[]]]
+createNetwork [x]      = [[[]]]
+createNetwork (x:y:ys) = (makeMatrix x y) : (createNetwork (y:ys))
+
+-- AINDA NÃO FUNCIONA DIREITO
+
 --Parte do Thiago
 
 import Data.List
