@@ -50,21 +50,46 @@ calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
 -- Ele cria uma rede com uma entrada, dois neurônios na parte intermediária e três neurônios na saída. O input é 1.0 e a saída
 de cada camada é retornado pela função acima
 
--Fim da Parte do Thiago
+--Fim da Parte do Thiago
 
---Funcao que recebe o output de uma layer e o resultado esperado e devolve
---o erro para cada neuronio
-calcError :: [Float] -> [Float] -> [Float]
+--derivada da sigmoide
+sigmoide' :: Float -> Float
+sigmoide' x = (exp (-x)) / ((1 + exp (-x))**2)
 
---Recebe a rede e a funcao de erro e realiza o backtracking:
---Calcula o erro do output
+--Calcula o gradiente de um neuron da camada de output
+-- g = (target - output)*sigmoide'(soma dos neuronios)
+outputNeuronGradient :: Float -> Float -> Float -> Float
+outputNeuronGradient target output neuronSum = (target-output) * sigmoide' neuronSum
+
+--Calcula o gradiente de todos os neurons da camada de output (um por vez)
+outputLayerGradients :: [Float] -> [Float] -> [Float] -> [Float]
+outputLayerGradients targets output sums = [outputNeuronGradient t o s | (t, o, s) <- zip3 targets output sums]
+
+--Calcula o gradiente de um neuron das camadas intermediarias
+--g = sum (w*g) * sigmoide' (sumNeuron)
+neuronGradient :: [Float] -> [Float] -> Float -> Float
+neuronGradient weights prevGradients neuronSum = (sum [w*g | (w, g) <- zip weights prevGradients]) * sigmoide' neuronSum
+
+--Calcula o gradiente de todos os neurons das camadas intermediarias
+layerGradients :: [[Float]] -> [Float] -> [Float] -> [Float]
+layerGradients weights prevGradients sums = [neuronGradient w prevGradients s | (w, s) <- zip [[neuron !! n | neuron <- weights] | n <- [0..length weights]] sums]
+
+--Calcula o gradiente de todas as camadas, comecando pela de output e indo no sentido contrario
+networkGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
+networkGradients net sums targets = (calcPerLayer net (init sums) outputGradients) ++ [outputGradients]
+                                  where outputGradients = outputLayerGradients targets (map sigmoid outputSum) outputSum
+                                        outputSum = last (sums)
+                                        calcPerLayer _ [] _ = []
+                                        calcPerLayer net sums lastGradients =  (calcPerLayer (init net) (init sums) layerGradient) ++ [layerGradient]
+                                                                              where layerGradient = layerGradients (last net) lastGradients (last sums)
+
+--Recebe a rede e os gradientes ajusta os pesos:
+--Calcula a variacao
 --Ajusta os pesos
---Calcula a saida esperada para a proxima layer
---Repete até chegar na primeira
-backTracking :: Network -> (calcError) -> Network
+ajustaPesos :: Network -> [[Float]] -> Network
 
 --Recebe a rede e um conjunto de treinamento de tuplas (input, output)
---e realiza o backtracking para cada entrada
+--calcula a saida, ajusta os pesos
 --Repete até que o criterio de parada (float) seja atingido
 --Devolve os pesos finais
 training :: Network -> [([Float],[Float])] -> Float -> Network
