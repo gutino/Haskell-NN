@@ -59,7 +59,7 @@ sigmoide' x = (exp (-x)) / ((1 + exp (-x))**2)
 --Calcula o gradiente de um neuron da camada de output
 -- g = (target - output)*sigmoide'(soma dos neuronios)
 outputNeuronGradient :: Float -> Float -> Float -> Float
-outputNeuronGradient target output neuronSum = (target-output) * sigmoide' neuronSum
+outputNeuronGradient target output neuronSum = (target-output) * derivative neuronSum
 
 --Calcula o gradiente de todos os neurons da camada de output (um por vez)
 outputLayerGradients :: [Float] -> [Float] -> [Float] -> [Float]
@@ -68,17 +68,18 @@ outputLayerGradients targets output sums = [outputNeuronGradient t o s | (t, o, 
 --Calcula o gradiente de um neuron das camadas intermediarias
 --g = sum (w*g) * sigmoide' (sumNeuron)
 neuronGradient :: [Float] -> [Float] -> Float -> Float
-neuronGradient weights prevGradients neuronSum = (sum [w*g | (w, g) <- zip weights prevGradients]) * sigmoide' neuronSum
+neuronGradient weights prevGradients output = (sum [w*g | (w, g) <- zip weights prevGradients]) * derivative output
 
 --Calcula o gradiente de todos os neurons das camadas intermediarias
 layerGradients :: [[Float]] -> [Float] -> [Float] -> [Float]
-layerGradients weights prevGradients sums = [neuronGradient w prevGradients s | (w, s) <- zip [[neuron !! n | neuron <- weights] | n <- [0..length weights]] sums]
+layerGradients weights prevGradients sums = [neuronGradient w prevGradients s | (w, s) <- zip neurons sums]
+                                          where neurons = [[neuron !! n | neuron <- weights] | n <- [0..length (head weights)-1]]
 
 --Calcula o gradiente de todas as camadas, comecando pela de output e indo no sentido contrario
 networkGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
 networkGradients net sums targets = (calcPerLayer net (init sums) outputGradients) ++ [outputGradients]
                                   where outputGradients = outputLayerGradients targets (map sigmoid outputSum) outputSum
-                                        outputSum = last (sums)
+                                        outputSum = last sums
                                         calcPerLayer _ [] _ = []
                                         calcPerLayer net sums lastGradients =  (calcPerLayer (init net) (init sums) layerGradient) ++ [layerGradient]
                                                                               where layerGradient = layerGradients (last net) lastGradients (last sums)
