@@ -13,7 +13,7 @@ createNetwork :: [Int] -> Network
 type Network = [[[Float]]]
 
 makeList :: Int -> [Float]
-makeList 0 = []
+makeList 0 = [1.0]
 makeList x = 1.0 : (makeList (x-1))
 
 makeMatrix :: Int -> Int -> [[Float]]
@@ -43,7 +43,7 @@ calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
 calcOutput xs [] f     = []
 calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
     where
-        resultCamada = calculaAct xs r f
+        resultCamada = calculaAct (xs++[-1.0]) r f
 
 -- calcOutput [1] (createNetwork [1,2,3]) (`sigmoid` 3.0)
 -->[[0.95257413,0.95257413],[0.99671614,0.99671614,0.99671614]]
