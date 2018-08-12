@@ -45,10 +45,14 @@ calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
     where
         resultCamada = calculaAct (xs++[-1.0]) r f
 
+-- createNetwork [1,2,3]
+-->[[[1.0,1.0],[1.0,1.0]],[[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0]]]
+-- cria rede com 1 entrada + bias, 2 neurônios de entrada + bias e 3 neurônios de saída + bias
+
 -- calcOutput [1] (createNetwork [1,2,3]) (`sigmoid` 3.0)
--->[[0.95257413,0.95257413],[0.99671614,0.99671614,0.99671614]]
--- Ele cria uma rede com uma entrada, dois neurônios na parte intermediária e três neurônios na saída. O input é 1.0 e a saída
-de cada camada é retornado pela função acima
+-->[[0.5,0.5],[0.5,0.5,0.5]]
+-- A rede acima é criada e a entrada 1 é aplicada à ela. É criada automaticamente uma entrada fixa -1 para cada neuonio,
+representando a plasticidade intrínseca
 
 --Fim da Parte do Thiago
 
