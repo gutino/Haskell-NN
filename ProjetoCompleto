@@ -32,36 +32,47 @@ calcOutput xs [] f     = []
 calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
     where
         resultCamada = calculaAct (xs++[-1.0]) r f
-
 -------------------------------------------------------------------
 
-outputNeuronGradient :: Float -> Float -> Float
-outputNeuronGradient target output = -(target-output) * output * (1-output)
+outputNeuronDeltas :: Float -> Float -> Float
+outputNeuronDeltas target output = -(target-output) * output * (1-output)
 
-outputLayerGradients :: [Float] -> [Float] -> [Float]
-outputLayerGradients targets output = [outputNeuronGradient t o | (t, o) <- zip targets output]
+outputLayerDeltas :: [Float] -> [Float] -> [Float]
+outputLayerDeltas targets output = [outputNeuronDeltas t o | (t, o) <- zip targets output]
 
 ------------------------------------------------------------------------
 
-neuronGradient :: [Float] -> [Float] -> Float -> Float
-neuronGradient weights prevGradients output = (sum [w*g | (w, g) <- zip weights prevGradients]) * output * (1-output)
+neuronDelta :: [Float] -> [Float] -> Float -> Float
+neuronDelta weights prevDeltas output = (sum [w*g | (w, g) <- zip weights prevDeltas]) * output * (1-output)
 
-layerGradients :: [[Float]] -> [Float] -> [Float] -> [Float]
-layerGradients weights prevGradients outputs = [neuronGradient w prevGradients s | (w, s) <- zip neurons outputs]
+layerDeltas :: [[Float]] -> [Float] -> [Float] -> [Float]
+layerDeltas weights prevDeltas outputs = [neuronDelta w prevDeltas s | (w, s) <- zip neurons outputs]
                                           where neurons = [[neuron !! n | neuron <- weights] | n <- [0..length (head weights)-1]]
 
-hiddenLayersGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
-hiddenLayersGradients _ [] _ = []
-hiddenLayersGradients net outputs lastGradients = (hiddenLayersGradients (tail net) (tail outputs) layerGradient) ++ [layerGradient]
-                                            where layerGradient = layerGradients (head net) lastGradients (head outputs)
+hiddenLayersDeltas :: Network -> [[Float]] -> [Float] -> [[Float]]
+hiddenLayersDeltas _ [] _ = []
+hiddenLayersDeltas net outputs lastDeltas = (hiddenLayersDeltas (tail net) (tail outputs) layerDelta) ++ [layerDelta]
+                                            where layerDelta = layerDeltas (head net) lastDeltas (head outputs)
 
 -------------------------------------------------------------------------
 
-networkGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
-networkGradients net outputs targets = (hiddenLayersGradients revNet (tail revOutput) outputGradients) ++ [outputGradients]
+networkDeltas :: Network -> [[Float]] -> [Float] -> [[Float]]
+networkDeltas net outputs targets = (hiddenLayersDeltas revNet (tail revOutput) outputDeltas) ++ [outputDeltas]
                                   where revOutput = reverse outputs
                                         revNet = reverse net
-                                        outputGradients = outputLayerGradients targets (head revOutput)
+                                        outputDeltas = outputLayerDeltas targets (head revOutput)
+
+-------------------------------------------------------------------------------
+
+neuronGradients :: [Float] -> Float -> [Float]
+neuronGradients outputs delta = (map (delta*) outputs) ++ [(-delta)]
+
+layerGradients :: [Float] -> [Float] -> [[Float]]
+layerGradients outputs deltas = map (neuronGradients outputs) deltas
+
+calcGradients :: [[Float]] -> [[Float]] -> [[[Float]]]
+calcGradients [] _ = []
+calcGradients (d:ds) (o:os) = (layerGradients d o) : (calcGradients ds os)
 
 net = [[[0.15,0.20,(-0.35)],[0.25,0.30,(-0.35)]],[[0.40,0.45,(-0.6)],[0.5,0.55,(-0.6)]]] :: Network
 
@@ -70,4 +81,6 @@ target = [0.01,0.99] :: [Float]
 input = [0.05, 0.10] :: [Float]
 
 outputs = calcOutput input net (sigmoid 1)
-grads = networkGradients net outputs target
+deltas = networkDeltas net outputs target
+
+gradients = calcGradients deltas (input:outputs)
