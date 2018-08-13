@@ -31,10 +31,14 @@ ativacao :: Float -> Float
 ativacao a | a < 2 = 0
            | otherwise = 1
 
+-- Dados vetor de entradas, matriz de pesos e função de ativação
+-- retorna a lista de output da camada
 calculaAct :: [Float] -> [[Float]] -> (Float->Float) -> [Float]
 calculaAct xs [] f      = []
 calculaAct xs (y:ys) f  = [f $ sum $ zipWith (*) xs y] ++ calculaAct xs ys f
 
+-- Dados vetor de entradas, rede neural e função de ativação
+-- retorna a lista de output e pesos da camada
 calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
 calcOutput xs [] f     = []
 calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
@@ -88,15 +92,15 @@ networkGradients net sums targets = (calcPerLayer net (init sums) outputGradient
 --Calcula a variacao
 --Ajusta os pesos
 ajustaPesos :: Network -> Float -> [[Float]] -> Network
-ajustaPesos net gamma grad = [[[m + n|(m,n) <- zip o p] | o <- q, p <- r] | q <- net, r <- toFloatList]
+ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys) <- zip net toFloatList]
                            where
-                             neggamma = negate gamma
-                             toFloatList = [[makeLine 2 y |y <- x]|x <- term]
-                             --term = [[neggamma * y|y <- x]|x <- grad]
-                             term = map (map (* neggamma)) grad
+                             netlength = map (map (length)) net
+                             toFloatList = [[makeLine x y | (x,y) <- zip xs ys]|(xs, ys) <- zip netlength term]
+                             term = map (map (* (negate gamma))) grad
                              makeLine 1 value = [value]
                              makeLine x value = 0.0 : (makeLine (x-1) value)
 -- [[(y !! 1) - gama*grad|y <- x]| x <- net]
+-- [[[m + n|(m,n) <- zip o p] | (o, p) <- zip q r] | (q, r) <- zip net toFloatList]
 
 --Recebe a rede e um conjunto de treinamento de tuplas (input, output)
 --calcula a saida, ajusta os pesos

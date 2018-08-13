@@ -74,6 +74,15 @@ calcGradients :: [[Float]] -> [[Float]] -> [[[Float]]]
 calcGradients [] _ = []
 calcGradients (d:ds) (o:os) = (layerGradients d o) : (calcGradients ds os)
 
+ajustaPesos :: Network -> Float -> [[Float]] -> Network
+ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys) <- zip net toFloatList]
+                           where
+                             netlength = map (map (length)) net
+                             toFloatList = [[makeLine x y | (x,y) <- zip xs ys]|(xs, ys) <- zip netlength term]
+                             term = map (map (* (negate gamma))) grad
+                             makeLine 1 value = [value]
+                             makeLine x value = 0.0 : (makeLine (x-1) value)
+
 net = [[[0.15,0.20,(-0.35)],[0.25,0.30,(-0.35)]],[[0.40,0.45,(-0.6)],[0.5,0.55,(-0.6)]]] :: Network
 
 target = [0.01,0.99] :: [Float]
