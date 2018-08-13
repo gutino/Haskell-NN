@@ -1,0 +1,73 @@
+import Data.List
+
+type Network = [[[Float]]]
+
+makeList :: Int -> [Float]
+makeList 0 = [1.0]
+makeList x = 1.0 : (makeList (x-1))
+
+makeMatrix :: Int -> Int -> [[Float]]
+makeMatrix 0 y = []
+makeMatrix x y = ((makeList y) : (makeMatrix (x-1) y))
+
+createNetwork :: [Int] -> Network
+createNetwork [x]       = []
+createNetwork (x:y:ys) = (makeMatrix y x) : (createNetwork (y:ys))
+
+-------------------------------------------------------------------
+
+sigmoid :: Float -> Float -> Float
+sigmoid x a = 1/(1 + exp(-a*x))
+
+ativacao :: Float -> Float
+ativacao a | a < 2 = 0
+           | otherwise = 1
+
+calculaAct :: [Float] -> [[Float]] -> (Float->Float) -> [Float]
+calculaAct xs [] f      = []
+calculaAct xs (y:ys) f  = [f $ sum $ zipWith (*) xs y] ++ calculaAct xs ys f
+
+calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
+calcOutput xs [] f     = []
+calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
+    where
+        resultCamada = calculaAct (xs++[-1.0]) r f
+
+-------------------------------------------------------------------
+
+outputNeuronGradient :: Float -> Float -> Float
+outputNeuronGradient target output = -(target-output) * output * (1-output)
+
+outputLayerGradients :: [Float] -> [Float] -> [Float]
+outputLayerGradients targets output = [outputNeuronGradient t o | (t, o) <- zip targets output]
+
+------------------------------------------------------------------------
+
+neuronGradient :: [Float] -> [Float] -> Float -> Float
+neuronGradient weights prevGradients output = (sum [w*g | (w, g) <- zip weights prevGradients]) * output * (1-output)
+
+layerGradients :: [[Float]] -> [Float] -> [Float] -> [Float]
+layerGradients weights prevGradients outputs = [neuronGradient w prevGradients s | (w, s) <- zip neurons outputs]
+                                          where neurons = [[neuron !! n | neuron <- weights] | n <- [0..length (head weights)-1]]
+
+hiddenLayersGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
+hiddenLayersGradients _ [] _ = []
+hiddenLayersGradients net outputs lastGradients = (hiddenLayersGradients (tail net) (tail outputs) layerGradient) ++ [layerGradient]
+                                            where layerGradient = layerGradients (head net) lastGradients (head outputs)
+
+-------------------------------------------------------------------------
+
+networkGradients :: Network -> [[Float]] -> [Float] -> [[Float]]
+networkGradients net outputs targets = (hiddenLayersGradients revNet (tail revOutput) outputGradients) ++ [outputGradients]
+                                  where revOutput = reverse outputs
+                                        revNet = reverse net
+                                        outputGradients = outputLayerGradients targets (head revOutput)
+
+net = [[[0.15,0.20,(-0.35)],[0.25,0.30,(-0.35)]],[[0.40,0.45,(-0.6)],[0.5,0.55,(-0.6)]]] :: Network
+
+target = [0.01,0.99] :: [Float]
+
+input = [0.05, 0.10] :: [Float]
+
+outputs = calcOutput input net (sigmoid 1)
+grads = networkGradients net outputs target
