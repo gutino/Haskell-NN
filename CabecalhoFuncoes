@@ -92,6 +92,7 @@ networkGradients net sums targets = (calcPerLayer net (init sums) outputGradient
 --Calcula a variacao
 --Ajusta os pesos
 ajustaPesos :: Network -> [[Float]] -> Network
+ajustaPesos network
 
 --Recebe a rede e um conjunto de treinamento de tuplas (input, output)
 --calcula a saida, ajusta os pesos
