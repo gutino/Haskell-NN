@@ -106,5 +106,13 @@ ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys)
 --calcula a saida, ajusta os pesos
 --Repete até que o criterio de parada (float) seja atingido
 --Devolve os pesos finais
-training :: Network -> [([Float],[Float])] -> Float -> Network
-training net tupla repet = undefined
+
+-- SUPOSTO TRAINING
+
+training :: Network -> [Float] -> [Float] -> Float -> Float -> Network
+training net _ _ _ 0 = net
+training net input target gamma step = training (ajustaPesos net gamma gradients) input target gamma (step-1)
+                            where
+                              outputs   = calcOutput input net (sigmoid 1)
+                              deltas    = networkDeltas net outputs target
+                              gradients = calcGradients deltas (input:outputs)
