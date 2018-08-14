@@ -1,95 +1,184 @@
 import Data.List
 
-type Network = [[[Float]]]
+--Recebe o input da primeira layer [Double] e a rede (os pesos), calcula a soma
+-- i*w e aplica a funcao de ativacao para cada neuronio. Devolve uma lista de listas,
+--onde cada lista eh o output para cada layer
 
-makeList :: Int -> [Float]
+--Parte do Gustavo
+
+type Network = [[[Double]]]
+
+makeList :: Int -> [Double]
 makeList 0 = [1.0]
 makeList x = 1.0 : (makeList (x-1))
 
-makeMatrix :: Int -> Int -> [[Float]]
+makeMatrix :: Int -> Int -> [[Double]]
 makeMatrix 0 y = []
 makeMatrix x y = ((makeList y) : (makeMatrix (x-1) y))
 
+--Recebe uma lista com o numero de neuronios por layer e devolve uma lista de matrizes
+--com os pesos das ligacoes
 createNetwork :: [Int] -> Network
 createNetwork [x]       = []
 createNetwork (x:y:ys) = (makeMatrix y x) : (createNetwork (y:ys))
 
--------------------------------------------------------------------
+--Parte do Thiago
 
-sigmoid :: Float -> Float -> Float
+sigmoid :: Double -> Double -> Double
 sigmoid x a = 1/(1 + exp(-a*x))
 
-ativacao :: Float -> Float
+ativacao :: Double -> Double
 ativacao a | a < 2 = 0
            | otherwise = 1
 
-calculaAct :: [Float] -> [[Float]] -> (Float->Float) -> [Float]
+-- Dados vetor de entradas, matriz de pesos e função de ativação
+-- retorna a lista de output da camada
+calculaAct :: [Double] -> [[Double]] -> (Double->Double) -> [Double]
 calculaAct xs [] f      = []
 calculaAct xs (y:ys) f  = [f $ sum $ zipWith (*) xs y] ++ calculaAct xs ys f
 
-calcOutput :: [Float] -> Network -> (Float -> Float) -> [[Float]]
+-- Dados vetor de entradas, rede neural e função de ativação
+-- retorna a lista de output e pesos da camada
+calcOutput :: [Double] -> Network -> (Double -> Double) -> [[Double]]
 calcOutput xs [] f     = []
 calcOutput xs (r:rs) f = [resultCamada] ++ calcOutput resultCamada rs f
     where
         resultCamada = calculaAct (xs++[-1.0]) r f
--------------------------------------------------------------------
 
-outputNeuronDeltas :: Float -> Float -> Float
+-- createNetwork [1,2,3]
+-- -->[[[1.0,1.0],[1.0,1.0]],[[1.0,1.0,1.0],[1.0,1.0,1.0],[1.0,1.0,1.0]]]
+-- cria rede com 1 entrada + bias, 2 neurônios de entrada + bias e 3 neurônios de saída + bias
+
+-- calcOutput [1] (createNetwork [1,2,3]) (`sigmoid` 3.0)
+-- -->[[0.5,0.5],[0.5,0.5,0.5]]
+-- A rede acima é criada e a entrada 1 é aplicada à ela. É criada automaticamente uma entrada fixa -1 para cada neuonio,
+-- representando a plasticidade intrínseca
+
+--Fim da Parte do Thiago
+
+--derivada da sigmoide
+sigmoide' :: Double -> Double
+sigmoide' x = (exp (-x)) / ((1 + exp (-x))**2)
+
+--Calcula o gradiente de um neuron da camada de output
+-- g = (target - output)*sigmoide'(soma dos neuronios)
+--outputNeuronGradient :: Double -> Double -> Double -> Double
+--outputNeuronGradient target output neuronSum = (target-output) * sigmoide' neuronSum
+
+--Calcula o gradiente de todos os neurons da camada de output (um por vez)
+--outputLayerGradients :: [Double] -> [Double] -> [Double] -> [Double]
+--outputLayerGradients targets output sums = [outputNeuronGradient t o s | (t, o, s) <- zip3 targets output sums]
+
+--Calcula o gradiente de um neuron das camadas intermediarias
+--g = sum (w*g) * sigmoide' (sumNeuron)
+--neuronGradient :: [Double] -> [Double] -> Double -> Double
+--neuronGradient weights prevGradients output = (sum [w*g | (w, g) <- zip weights prevGradients]) * sigmoide' output
+
+--Calcula o gradiente de todos os neurons das camadas intermediarias
+--layerGradients :: [[Double]] -> [Double] -> [Double] -> [Double]
+--layerGradients weights prevGradients sums = [neuronGradient w prevGradients s | (w, s) <- zip neurons sums]
+--                                          where neurons = [[neuron !! n | neuron <- weights] | n <- [0..length (head weights)-1]]
+
+--Calcula o gradiente de todas as camadas, comecando pela de output e indo no sentido contrario
+{-networkGradients :: Network -> [[Double]] -> [Double] -> [[Double]]
+networkGradients net sums targets = (calcPerLayer net (init sums) outputGradients) ++ [outputGradients]
+                                  where outputGradients = outputLayerGradients targets (map sigmoide' outputSum) outputSum
+                                        outputSum = last sums
+                                        calcPerLayer _ [] _ = []
+                                        calcPerLayer net sums lastGradients =  (calcPerLayer (init net) (init sums) layerGradient) ++ [layerGradient]
+                                                                          where layerGradient = layerGradients (last net) lastGradients (last sums)
+-}
+
+outputNeuronDeltas :: Double -> Double -> Double
 outputNeuronDeltas target output = -(target-output) * output * (1-output)
 
-outputLayerDeltas :: [Float] -> [Float] -> [Float]
+outputLayerDeltas :: [Double] -> [Double] -> [Double]
 outputLayerDeltas targets output = [outputNeuronDeltas t o | (t, o) <- zip targets output]
 
-------------------------------------------------------------------------
-
-neuronDelta :: [Float] -> [Float] -> Float -> Float
+neuronDelta :: [Double] -> [Double] -> Double -> Double
 neuronDelta weights prevDeltas output = (sum [w*g | (w, g) <- zip weights prevDeltas]) * output * (1-output)
 
-layerDeltas :: [[Float]] -> [Float] -> [Float] -> [Float]
+layerDeltas :: [[Double]] -> [Double] -> [Double] -> [Double]
 layerDeltas weights prevDeltas outputs = [neuronDelta w prevDeltas s | (w, s) <- zip neurons outputs]
                                           where neurons = [[neuron !! n | neuron <- weights] | n <- [0..length (head weights)-1]]
 
-hiddenLayersDeltas :: Network -> [[Float]] -> [Float] -> [[Float]]
+hiddenLayersDeltas :: Network -> [[Double]] -> [Double] -> [[Double]]
 hiddenLayersDeltas _ [] _ = []
 hiddenLayersDeltas net outputs lastDeltas = (hiddenLayersDeltas (tail net) (tail outputs) layerDelta) ++ [layerDelta]
                                             where layerDelta = layerDeltas (head net) lastDeltas (head outputs)
 
--------------------------------------------------------------------------
-
-networkDeltas :: Network -> [[Float]] -> [Float] -> [[Float]]
+networkDeltas :: Network -> [[Double]] -> [Double] -> [[Double]]
 networkDeltas net outputs targets = (hiddenLayersDeltas revNet (tail revOutput) outputDeltas) ++ [outputDeltas]
                                   where revOutput = reverse outputs
                                         revNet = reverse net
                                         outputDeltas = outputLayerDeltas targets (head revOutput)
 
--------------------------------------------------------------------------------
-
-neuronGradients :: [Float] -> Float -> [Float]
+neuronGradients :: [Double] -> Double -> [Double]
 neuronGradients outputs delta = (map (delta*) outputs) ++ [(-delta)]
 
-layerGradients :: [Float] -> [Float] -> [[Float]]
+layerGradients :: [Double] -> [Double] -> [[Double]]
 layerGradients outputs deltas = map (neuronGradients outputs) deltas
 
-calcGradients :: [[Float]] -> [[Float]] -> [[[Float]]]
+calcGradients :: [[Double]] -> [[Double]] -> [[[Double]]]
 calcGradients [] _ = []
-calcGradients (d:ds) (o:os) = (layerGradients d o) : (calcGradients ds os)
+calcGradients (d:ds) (o:os) = (layerGradients o d) : (calcGradients ds os)
 
-ajustaPesos :: Network -> Float -> [[Float]] -> Network
-ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys) <- zip net toFloatList]
+
+--Recebe a rede, o gamma os gradientes ajusta os pesos:
+--Calcula a variacao
+--Ajusta os pesos
+ajustaPesos :: Network -> Double -> Network -> Network
+ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys) <- zip net term]
                            where
-                             netlength = map (map (length)) net
-                             toFloatList = [[makeLine x y | (x,y) <- zip xs ys]|(xs, ys) <- zip netlength term]
-                             term = map (map (* (negate gamma))) grad
-                             makeLine 1 value = [value]
-                             makeLine x value = 0.0 : (makeLine (x-1) value)
+                             term = map (map (map (* (-gamma)))) grad
+--ajustaPesos net gamma grad = [[zipWith (+) x y | (x, y) <- zip xs ys] | (xs, ys) <- zip net toDoubleList]
+--                           where
+--                             netlength = map (map (length)) net
+--                             toDoubleList = [[makeLine x y | (x,y) <- zip xs ys]|(xs, ys) <- zip netlength term]
+--                             term = map (map (* (negate gamma))) grad
+--                             makeLine 1 value = [value]
+--                             makeLine x value = 0.0 : (makeLine (x-1) value)
+-- [[(y !! 1) - gama*grad|y <- x]| x <- net]
+-- [[[m + n|(m,n) <- zip o p] | (o, p) <- zip q r] | (q, r) <- zip net toDoubleList]
 
-net = [[[0.15,0.20,(-0.35)],[0.25,0.30,(-0.35)]],[[0.40,0.45,(-0.6)],[0.5,0.55,(-0.6)]]] :: Network
+--Recebe a rede e um conjunto de treinamento de tuplas (input, output)
+--calcula a saida, ajusta os pesos
+--Repete até que o criterio de parada (float) seja atingido
+--Devolve os pesos finais
 
-target = [0.01,0.99] :: [Float]
+-- SUPOSTO TRAINING
 
-input = [0.05, 0.10] :: [Float]
+passOnce :: Network -> [[Double]] -> [[Double]] -> Double -> Network
+passOnce net [] [] _ = net
+passOnce net (i:is) (t:ts) g = passOnce (ajustaPesos net g gradients) is ts g
+                    where
+                      outputs   = calcOutput i net (sigmoid 1)
+                      deltas    = networkDeltas net outputs t
+                      gradients = calcGradients deltas (i:outputs)
 
-outputs = calcOutput input net (sigmoid 1)
-deltas = networkDeltas net outputs target
 
-gradients = calcGradients deltas (input:outputs)
+training :: Network -> [[Double]] -> [[Double]] -> Double -> Double -> Network
+training net _ _ _ 0 = net
+training net inputs targets gamma step = training (passOnce net inputs targets gamma) inputs targets gamma (step-1)
+
+-- net = [[[0.15,0.20,(-0.35)],[0.25,0.30,(-0.35)]],[[0.40,0.45,(-0.6)],[0.5,0.55,(-0.6)]]] :: Network
+net = createNetwork [2,5,1]
+
+x = [[a, b]| a <- [0..20], b <- [20..40]] :: [[Double]]
+y = [[sum a] | a <- x] :: [[Double]]
+
+inputs = map (map (/100)) x
+targets = map (map (/100)) y
+
+
+-- outputs = calcOutput input net (sigmoid 1)
+-- deltas = networkDeltas net outputs target
+
+-- gradients = calcGradients deltas (input:outputs)
+
+gamma = 0.1
+step = 200
+
+-- newNet = ajustaPesos net gamma gradients
+
+treinamento = training net inputs targets gamma step
